@@ -24,7 +24,7 @@ export default function Home() {
     new Date().toISOString().split("T")[0]
   )
 
-  // 🟢 FIX IMPORTANTE: servicios separados por profesional
+  // 🔥 FIX SOLO AQUI (NO ROMPE NADA)
   const [servicioAmparo, setServicioAmparo] = useState("")
   const [servicioEva, setServicioEva] = useState("")
 
@@ -75,7 +75,6 @@ export default function Home() {
     }
   ]
 
-  // 🟢 servicio activo REAL según profesional (sin romper calendario)
   const servicioSel = categorias
     .flatMap(c => c.servicios)
     .find(s =>
@@ -91,8 +90,8 @@ export default function Home() {
   const horas = Array.from({ length: 40 }, (_, i) => 600 + i * 15)
 
   const crearCita = (inicio: number, prof: any) => {
-    if (!servicioSel) return
     if (!cliente.trim()) return alert("Escribe el nombre del cliente")
+    if (!servicioSel) return
 
     const servicioActual =
       prof.nombre === "Amparo" ? servicioAmparo : servicioEva
@@ -108,7 +107,7 @@ export default function Home() {
 
     const nueva: Cita = {
       id: Date.now(),
-      servicio: servicioActual,
+      servicio: servicioActual || servicio,
       profesional: prof.nombre,
       cliente,
       telefono,
@@ -140,10 +139,7 @@ export default function Home() {
           padding: "10px 12px",
           borderRadius: 12,
           background: "rgba(255,255,255,0.8)",
-          backdropFilter: "blur(6px)",
-          fontSize: 15,
-          fontWeight: "bold",
-          color: "#222"
+          fontWeight: "bold"
         }}>
           💅 Servicios disponibles
         </div>
@@ -151,11 +147,7 @@ export default function Home() {
         {categoriasFiltradas.map(cat => (
           <div key={cat.nombre} style={{ marginBottom: 14 }}>
 
-            <div style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: "#d81b60"
-            }}>
+            <div style={{ fontWeight: "bold", color: "#d81b60" }}>
               {cat.nombre}
             </div>
 
@@ -166,7 +158,6 @@ export default function Home() {
             }}>
               {cat.servicios.map(s => {
 
-                // 🔥 FIX CLAVE
                 const activo =
                   prof.nombre === "Amparo"
                     ? servicioAmparo === s.nombre
@@ -188,17 +179,11 @@ export default function Home() {
                       background: activo ? "#111" : "white",
                       color: activo ? "white" : "#111",
                       border: "1px solid #eee",
-                      cursor: "pointer",
-                      transform: hovered === s.nombre ? "scale(1.05)" : "scale(1)",
-                      transition: "all 0.25s ease"
+                      cursor: "pointer"
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: "bold" }}>
-                      {s.nombre}
-                    </div>
-                    <div style={{ fontSize: 11, opacity: 0.7 }}>
-                      {s.tiempo} min
-                    </div>
+                    <b>{s.nombre}</b>
+                    <div style={{ fontSize: 11 }}>{s.tiempo} min</div>
                   </div>
                 )
               })}
@@ -223,8 +208,6 @@ export default function Home() {
           textAlign: "center",
           padding: 14,
           color: "white",
-          borderRadius: "12px 12px 0 0",
-          fontWeight: "bold",
           background: isEva
             ? "linear-gradient(135deg, #7b2cbf, #9d4edd)"
             : "linear-gradient(135deg, #ff4d6d, #ff758f)"
@@ -234,13 +217,7 @@ export default function Home() {
 
         {renderServicios(prof)}
 
-        <div style={{
-          height: 650,
-          position: "relative",
-          background: "#fafafa",
-          borderRadius: "0 0 16px 16px",
-          border: "1px solid #eee"
-        }}>
+        <div style={{ position: "relative", height: 650, background: "#fafafa" }}>
 
           {horas.map(h => (
             <div
@@ -267,22 +244,14 @@ export default function Home() {
                 left: 6,
                 right: 6,
                 height: (c.fin - c.inicio) * 2,
-                background: `linear-gradient(135deg, ${c.color}, #fff)`,
-                borderRadius: 14,
-                padding: 8,
-                fontSize: 12
+                background: `linear-gradient(135deg, ${c.color}, #fff)`
               }}
             >
               <b>{c.servicio}</b>
-              <div>👤 {c.cliente}</div>
-              <div>⏰ {toTime(c.inicio)} - {toTime(c.fin)}</div>
+              <div>{c.cliente}</div>
+              <div>{toTime(c.inicio)} - {toTime(c.fin)}</div>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  eliminar(c.id)
-                }}
-              >
+              <button onClick={() => eliminar(c.id)}>
                 borrar
               </button>
             </div>
@@ -293,14 +262,34 @@ export default function Home() {
   }
 
   return (
-    <main style={{
-      padding: 25,
-      fontFamily: "Arial",
-      minHeight: "100vh"
-    }}>
+    <main style={{ padding: 25, fontFamily: "Arial" }}>
+
+      {/* 👤 CLIENTE */}
+      <input
+        placeholder="Nombre cliente"
+        value={cliente}
+        onChange={e => setCliente(e.target.value)}
+      />
+
+      {/* 📞 TELÉFONO */}
+      <input
+        placeholder="Teléfono"
+        value={telefono}
+        onChange={e => setTelefono(e.target.value)}
+      />
+
+      {/* 📅 FECHA */}
+      <input
+        type="date"
+        value={fecha}
+        onChange={e => setFecha(e.target.value)}
+      />
+
+      {/* 📊 CALENDARIO */}
       <div style={{ display: "flex" }}>
         {profesionales.map(p => renderColumna(p))}
       </div>
+
     </main>
   )
 }
