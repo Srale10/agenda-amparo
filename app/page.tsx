@@ -27,6 +27,9 @@ export default function Home() {
   const [servicioAmparo, setServicioAmparo] = useState("")
   const [servicioEva, setServicioEva] = useState("")
 
+  // ⏰ hora seleccionada
+  const [horaSeleccionada, setHoraSeleccionada] = useState<number | null>(null)
+
   const profesionales = [
     { nombre: "Amparo", soloUñas: false },
     { nombre: "Eva", soloUñas: true }
@@ -82,26 +85,38 @@ export default function Home() {
 
   const horas = Array.from({ length: 40 }, (_, i) => 600 + i * 15)
 
-  const crearCita = (inicio: number, prof: any) => {
-    if (!cliente.trim()) return alert("Escribe el nombre del cliente")
+  const servicioSel = categorias
+    .flatMap(c => c.servicios)
+    .find(s =>
+      s.nombre === servicioAmparo || s.nombre === servicioEva
+    )
 
+  const hayConflicto = (inicio: number, fin: number, prof: string) => {
+    return citas.some(c =>
+      c.profesional === prof &&
+      c.fecha === fecha &&
+      inicio < c.fin &&
+      fin > c.inicio
+    )
+  }
+
+  const crearCita = (inicio: number, prof: any) => {
     const servicioActual =
       prof.nombre === "Amparo" ? servicioAmparo : servicioEva
 
+    if (!cliente.trim()) return alert("Escribe el nombre del cliente")
     if (!servicioActual) return alert("Selecciona un servicio")
-
-    const cat = categorias.find(c =>
-      c.servicios.some(s => s.nombre === servicioActual)
-    )
-
-    if (prof.soloUñas && !cat?.esUñas) {
-      alert("Eva solo puede hacer servicios de UÑAS")
-      return
-    }
 
     const servicioInfo = categorias
       .flatMap(c => c.servicios)
       .find(s => s.nombre === servicioActual)
+
+    const fin = inicio + (servicioInfo?.tiempo || 0)
+
+    if (hayConflicto(inicio, fin, prof.nombre)) {
+      alert("❌ Ya hay una cita en esa hora")
+      return
+    }
 
     const nueva: Cita = {
       id: Date.now(),
@@ -110,7 +125,7 @@ export default function Home() {
       cliente,
       telefono,
       inicio,
-      fin: inicio + (servicioInfo?.tiempo || 0),
+      fin,
       fecha,
       color: servicioInfo?.color || "#ccc"
     }
@@ -118,6 +133,7 @@ export default function Home() {
     setCitas(prev => [...prev, nueva])
     setCliente("")
     setTelefono("")
+    setHoraSeleccionada(null)
   }
 
   const eliminar = (id: number) => {
@@ -136,7 +152,7 @@ export default function Home() {
           marginBottom: 10,
           padding: "10px 12px",
           borderRadius: 12,
-          background: "rgba(255,255,255,0.8)",
+          background: "white",
           fontWeight: "bold"
         }}>
           💅 Servicios
@@ -145,7 +161,7 @@ export default function Home() {
         {categoriasFiltradas.map(cat => (
           <div key={cat.nombre} style={{ marginBottom: 14 }}>
 
-            <div style={{ fontWeight: "bold", color: "#d81b60" }}>
+            <div style={{ fontWeight: "bold", color: "#1e3a8a" }}>
               {cat.nombre}
             </div>
 
@@ -166,19 +182,22 @@ export default function Home() {
                     key={s.nombre}
                     onClick={() => {
                       if (prof.nombre === "Amparo") {
-                        setServicioAmparo(prev => prev === s.nombre ? "" : s.nombre)
+                        setServicioAmparo(prev =>
+                          prev === s.nombre ? "" : s.nombre
+                        )
                       } else {
-                        setServicioEva(prev => prev === s.nombre ? "" : s.nombre)
+                        setServicioEva(prev =>
+                          prev === s.nombre ? "" : s.nombre
+                        )
                       }
                     }}
                     style={{
                       padding: 12,
                       borderRadius: 16,
-                      background: activo ? "#111" : "white",
+                      background: activo ? "#1e3a8a" : "white",
                       color: activo ? "white" : "#111",
                       border: "1px solid #eee",
-                      cursor: "pointer",
-                      transition: "0.2s"
+                      cursor: "pointer"
                     }}
                   >
                     <b>{s.nombre}</b>
@@ -203,7 +222,7 @@ export default function Home() {
     return (
       <div style={{ flex: 1, margin: 10 }}>
 
-        {/* 💅 HEADER */}
+        {/* HEADER */}
         <div style={{
           textAlign: "center",
           padding: 14,
@@ -218,13 +237,34 @@ export default function Home() {
 
         {renderServicios(prof)}
 
-        {/* 📅 CALENDARIO */}
+        {/* BOTÓN GUARDAR */}
+        <button
+          onClick={() => {
+            if (!horaSeleccionada) return alert("Selecciona una hora")
+            crearCita(horaSeleccionada, prof)
+          }}
+          style={{
+            marginBottom: 10,
+            width: "100%",
+            padding: 10,
+            background: "#1e3a8a",
+            color: "white",
+            border: "none",
+            borderRadius: 10,
+            fontWeight: "bold",
+            cursor: "pointer"
+          }}
+        >
+          💾 Guardar cita
+        </button>
+
+        {/* HORAS */}
         <div style={{ position: "relative", height: 650, background: "#fafafa" }}>
 
           {horas.map(h => (
             <div
               key={h}
-              onClick={() => crearCita(h, prof)}
+              onClick={() => setHoraSeleccionada(h)}
               style={{
                 position: "absolute",
                 top: (h - 600) * 2,
@@ -232,13 +272,14 @@ export default function Home() {
                 right: 0,
                 height: 30,
                 borderTop: "1px dashed #ddd",
-                cursor: "pointer"
+                cursor: "pointer",
+                background: horaSeleccionada === h ? "#dbeafe" : "transparent"
               }}
             >
               {h % 60 === 0 && (
                 <span style={{
                   fontSize: 10,
-                  color: "#999",
+                  color: "#666",
                   position: "absolute",
                   left: 6,
                   top: -8
@@ -283,12 +324,10 @@ export default function Home() {
       padding: 25,
       fontFamily: "Arial",
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #ffe6f0, #e6f7ff, #fff7e6)",
-      backgroundSize: "400% 400%",
-      animation: "gradientMove 10s ease infinite"
+      background: "#dbeafe"
     }}>
 
-      {/* 💅 LOGO */}
+      {/* LOGO */}
       <div style={{ textAlign: "center", marginBottom: 25 }}>
         <h1 style={{
           fontSize: 60,
@@ -302,44 +341,35 @@ export default function Home() {
         }}>
           MUAH
         </h1>
-
         <div>BY AMPARO SALADO</div>
       </div>
 
-      {/* 👤 CLIENTE */}
+      {/* CLIENTE */}
       <input
         placeholder="Nombre cliente"
         value={cliente}
         onChange={e => setCliente(e.target.value)}
       />
 
-      {/* 📞 TELÉFONO */}
+      {/* TELÉFONO */}
       <input
         placeholder="Teléfono"
         value={telefono}
         onChange={e => setTelefono(e.target.value)}
       />
 
-      {/* 📅 FECHA */}
+      {/* FECHA */}
       <input
         type="date"
         value={fecha}
         onChange={e => setFecha(e.target.value)}
       />
 
-      {/* 📊 CALENDARIO */}
       <div style={{ display: "flex" }}>
         {profesionales.map(p => renderColumna(p))}
       </div>
 
-      {/* 🎨 ANIMACIONES */}
       <style>{`
-        @keyframes gradientMove {
-          0% {background-position: 0% 50%}
-          50% {background-position: 100% 50%}
-          100% {background-position: 0% 50%}
-        }
-
         @keyframes logoColor {
           0% {background-position: 0% 50%}
           50% {background-position: 100% 50%}
