@@ -14,7 +14,6 @@ type Cita = {
 }
 
 export default function Home() {
-  const [servicio, setServicio] = useState("")
   const [cliente, setCliente] = useState("")
   const [telefono, setTelefono] = useState("")
   const [citas, setCitas] = useState<Cita[]>([])
@@ -24,7 +23,7 @@ export default function Home() {
     new Date().toISOString().split("T")[0]
   )
 
-  // 🔥 FIX SOLO AQUI (NO ROMPE NADA)
+  // 💅 servicios independientes
   const [servicioAmparo, setServicioAmparo] = useState("")
   const [servicioEva, setServicioEva] = useState("")
 
@@ -75,12 +74,6 @@ export default function Home() {
     }
   ]
 
-  const servicioSel = categorias
-    .flatMap(c => c.servicios)
-    .find(s =>
-      s.nombre === servicioAmparo || s.nombre === servicioEva || s.nombre === servicio
-    )
-
   const toTime = (m: number) => {
     const h = Math.floor(m / 60)
     const mm = m % 60
@@ -91,10 +84,11 @@ export default function Home() {
 
   const crearCita = (inicio: number, prof: any) => {
     if (!cliente.trim()) return alert("Escribe el nombre del cliente")
-    if (!servicioSel) return
 
     const servicioActual =
       prof.nombre === "Amparo" ? servicioAmparo : servicioEva
+
+    if (!servicioActual) return alert("Selecciona un servicio")
 
     const cat = categorias.find(c =>
       c.servicios.some(s => s.nombre === servicioActual)
@@ -105,16 +99,20 @@ export default function Home() {
       return
     }
 
+    const servicioInfo = categorias
+      .flatMap(c => c.servicios)
+      .find(s => s.nombre === servicioActual)
+
     const nueva: Cita = {
       id: Date.now(),
-      servicio: servicioActual || servicio,
+      servicio: servicioActual,
       profesional: prof.nombre,
       cliente,
       telefono,
       inicio,
-      fin: inicio + (servicioSel?.tiempo || 0),
+      fin: inicio + (servicioInfo?.tiempo || 0),
       fecha,
-      color: servicioSel?.color || "#ccc"
+      color: servicioInfo?.color || "#ccc"
     }
 
     setCitas(prev => [...prev, nueva])
@@ -141,7 +139,7 @@ export default function Home() {
           background: "rgba(255,255,255,0.8)",
           fontWeight: "bold"
         }}>
-          💅 Servicios disponibles
+          💅 Servicios
         </div>
 
         {categoriasFiltradas.map(cat => (
@@ -166,20 +164,21 @@ export default function Home() {
                 return (
                   <div
                     key={s.nombre}
-                    onClick={() =>
-                      prof.nombre === "Amparo"
-                        ? setServicioAmparo(s.nombre)
-                        : setServicioEva(s.nombre)
-                    }
-                    onMouseEnter={() => setHovered(s.nombre)}
-                    onMouseLeave={() => setHovered(null)}
+                    onClick={() => {
+                      if (prof.nombre === "Amparo") {
+                        setServicioAmparo(prev => prev === s.nombre ? "" : s.nombre)
+                      } else {
+                        setServicioEva(prev => prev === s.nombre ? "" : s.nombre)
+                      }
+                    }}
                     style={{
                       padding: 12,
                       borderRadius: 16,
                       background: activo ? "#111" : "white",
                       color: activo ? "white" : "#111",
                       border: "1px solid #eee",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      transition: "0.2s"
                     }}
                   >
                     <b>{s.nombre}</b>
@@ -204,10 +203,12 @@ export default function Home() {
     return (
       <div style={{ flex: 1, margin: 10 }}>
 
+        {/* 💅 HEADER */}
         <div style={{
           textAlign: "center",
           padding: 14,
           color: "white",
+          fontWeight: "bold",
           background: isEva
             ? "linear-gradient(135deg, #7b2cbf, #9d4edd)"
             : "linear-gradient(135deg, #ff4d6d, #ff758f)"
@@ -217,6 +218,7 @@ export default function Home() {
 
         {renderServicios(prof)}
 
+        {/* 📅 CALENDARIO */}
         <div style={{ position: "relative", height: 650, background: "#fafafa" }}>
 
           {horas.map(h => (
@@ -229,10 +231,22 @@ export default function Home() {
                 left: 0,
                 right: 0,
                 height: 30,
-                borderTop: "1px dashed #eee",
+                borderTop: "1px dashed #ddd",
                 cursor: "pointer"
               }}
-            />
+            >
+              {h % 60 === 0 && (
+                <span style={{
+                  fontSize: 10,
+                  color: "#999",
+                  position: "absolute",
+                  left: 6,
+                  top: -8
+                }}>
+                  {toTime(h)}
+                </span>
+              )}
+            </div>
           ))}
 
           {citasFiltradas.map(c => (
@@ -244,12 +258,15 @@ export default function Home() {
                 left: 6,
                 right: 6,
                 height: (c.fin - c.inicio) * 2,
-                background: `linear-gradient(135deg, ${c.color}, #fff)`
+                background: `linear-gradient(135deg, ${c.color}, #fff)`,
+                borderRadius: 14,
+                padding: 8,
+                fontSize: 12
               }}
             >
               <b>{c.servicio}</b>
-              <div>{c.cliente}</div>
-              <div>{toTime(c.inicio)} - {toTime(c.fin)}</div>
+              <div>👤 {c.cliente}</div>
+              <div>⏰ {toTime(c.inicio)} - {toTime(c.fin)}</div>
 
               <button onClick={() => eliminar(c.id)}>
                 borrar
@@ -262,7 +279,32 @@ export default function Home() {
   }
 
   return (
-    <main style={{ padding: 25, fontFamily: "Arial" }}>
+    <main style={{
+      padding: 25,
+      fontFamily: "Arial",
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #ffe6f0, #e6f7ff, #fff7e6)",
+      backgroundSize: "400% 400%",
+      animation: "gradientMove 10s ease infinite"
+    }}>
+
+      {/* 💅 LOGO */}
+      <div style={{ textAlign: "center", marginBottom: 25 }}>
+        <h1 style={{
+          fontSize: 60,
+          fontWeight: "bold",
+          letterSpacing: 3,
+          background: "linear-gradient(270deg, #ff4d6d, #7b2cbf, #4cc9f0, #f72585)",
+          backgroundSize: "800% 800%",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          animation: "logoColor 6s ease infinite"
+        }}>
+          MUAH
+        </h1>
+
+        <div>BY AMPARO SALADO</div>
+      </div>
 
       {/* 👤 CLIENTE */}
       <input
@@ -289,6 +331,21 @@ export default function Home() {
       <div style={{ display: "flex" }}>
         {profesionales.map(p => renderColumna(p))}
       </div>
+
+      {/* 🎨 ANIMACIONES */}
+      <style>{`
+        @keyframes gradientMove {
+          0% {background-position: 0% 50%}
+          50% {background-position: 100% 50%}
+          100% {background-position: 0% 50%}
+        }
+
+        @keyframes logoColor {
+          0% {background-position: 0% 50%}
+          50% {background-position: 100% 50%}
+          100% {background-position: 0% 50%}
+        }
+      `}</style>
 
     </main>
   )
