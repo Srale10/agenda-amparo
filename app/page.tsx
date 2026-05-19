@@ -1,387 +1,129 @@
 "use client"
-import { useState, useEffect } from "react"
 
-type Cita = {
-  id: number
-  servicio: string
-  profesional: string
-  cliente: string
-  telefono?: string
-  inicio: number
-  fin: number
-  fecha: string
-  color: string
-}
+import { useState } from "react"
 
 export default function Home() {
-  const [servicio, setServicio] = useState("")
-  const [cliente, setCliente] = useState("")
-  const [telefono, setTelefono] = useState("")
-  const [citas, setCitas] = useState<Cita[]>([])
-  const [hovered, setHovered] = useState<string | null>(null)
+  const [selected, setSelected] = useState({
+    amparo: "",
+    eva: ""
+  })
 
-  const [fecha, setFecha] = useState(
-    new Date().toISOString().split("T")[0]
-  )
-
-  const profesionales = [
-    { nombre: "Amparo", soloUñas: false },
-    { nombre: "Eva", soloUñas: true }
+  const services = [
+    "Acrigel",
+    "Uñas tradicionales",
+    "Esmaltado pies",
+    "Manicura",
+    "Pedicura"
   ]
 
-  useEffect(() => {
-    const data = localStorage.getItem("citas")
-    if (data) setCitas(JSON.parse(data))
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem("citas", JSON.stringify(citas))
-  }, [citas])
-
-  const categorias = [
-    {
-      nombre: "UÑAS",
-      esUñas: true,
-      servicios: [
-        { nombre: "Semipermanentes", tiempo: 30, color: "#ffb6d5" },
-        { nombre: "Tradicionales", tiempo: 15, color: "#ffd6a5" },
-        { nombre: "Acrigel", tiempo: 60, color: "#a0e7ff" },
-        { nombre: "Acrílicas", tiempo: 60, color: "#cdb4ff" },
-        { nombre: "Esmaltado pies", tiempo: 30, color: "#ffd6e0" }
-      ]
-    },
-    {
-      nombre: "BELLEZA",
-      esUñas: false,
-      servicios: [
-        { nombre: "Maquillaje", tiempo: 45, color: "#fff3a6" },
-        { nombre: "Peinados", tiempo: 45, color: "#bde0fe" },
-        { nombre: "Lifting pestañas", tiempo: 60, color: "#ffc8dd" }
-      ]
-    },
-    {
-      nombre: "TRATAMIENTOS",
-      esUñas: false,
-      servicios: [
-        { nombre: "Higiene facial", tiempo: 90, color: "#b9fbc0" },
-        { nombre: "Microblading", tiempo: 120, color: "#e0aaff" },
-        { nombre: "Depilación corporal", tiempo: 30, color: "#caffbf" },
-        { nombre: "Depilación facial", tiempo: 15, color: "#f1f1f1" }
-      ]
-    }
-  ]
-
-  const servicioSel = categorias
-    .flatMap(c => c.servicios)
-    .find(s => s.nombre === servicio)
-
-  const toTime = (m: number) => {
-    const h = Math.floor(m / 60)
-    const mm = m % 60
-    return `${h.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`
-  }
-
-  const horas = Array.from({ length: 40 }, (_, i) => 600 + i * 15)
-
-  const crearCita = (inicio: number, prof: any) => {
-    if (!servicioSel) return
-    if (!cliente.trim()) return alert("Escribe el nombre del cliente")
-
-    const cat = categorias.find(c =>
-      c.servicios.some(s => s.nombre === servicio)
-    )
-
-    if (prof.soloUñas && !cat?.esUñas) {
-      alert("Eva solo puede hacer servicios de UÑAS")
-      return
-    }
-
-    const nueva: Cita = {
-      id: Date.now(),
-      servicio,
-      profesional: prof.nombre,
-      cliente,
-      telefono,
-      inicio,
-      fin: inicio + servicioSel.tiempo,
-      fecha,
-      color: servicioSel.color
-    }
-
-    setCitas(prev => [...prev, nueva])
-    setCliente("")
-    setTelefono("")
-  }
-
-  const eliminar = (id: number) => {
-    setCitas(prev => prev.filter(c => c.id !== id))
-  }
-
-  const renderServicios = (prof: any) => {
-    const categoriasFiltradas = prof.soloUñas
-      ? categorias.filter(c => c.esUñas)
-      : categorias
-
-    return (
-      <div style={{ marginTop: 12, marginBottom: 12 }}>
-
-        <div style={{
-          marginBottom: 10,
-          padding: "10px 12px",
-          borderRadius: 12,
-          background: "rgba(255,255,255,0.8)",
-          backdropFilter: "blur(6px)",
-          fontSize: 15,
-          fontWeight: "bold",
-          color: "#222",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-        }}>
-          💅 Servicios disponibles
-        </div>
-
-        {categoriasFiltradas.map(cat => (
-          <div key={cat.nombre} style={{ marginBottom: 14 }}>
-
-            <div style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: "#d81b60",
-              marginBottom: 6
-            }}>
-              {cat.nombre}
-            </div>
-
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: 8
-            }}>
-              {cat.servicios.map(s => {
-                const activo = servicio === s.nombre
-
-                return (
-                  <div
-                    key={s.nombre}
-                    onClick={() => setServicio(s.nombre)}
-                    onMouseEnter={() => setHovered(s.nombre)}
-                    onMouseLeave={() => setHovered(null)}
-                    style={{
-                      padding: 12,
-                      borderRadius: 16,
-                      background: activo ? "#111" : "white",
-                      color: activo ? "white" : "#111",
-                      border: "1px solid #eee",
-                      boxShadow: hovered === s.nombre
-                        ? "0 10px 25px rgba(0,0,0,0.18)"
-                        : "0 6px 18px rgba(0,0,0,0.08)",
-                      cursor: "pointer",
-                      userSelect: "none",
-                      transform: hovered === s.nombre ? "scale(1.05)" : "scale(1)",
-                      transition: "all 0.25s ease"
-                    }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: "bold" }}>
-                      {s.nombre}
-                    </div>
-
-                    <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
-                      {s.tiempo} min
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  const renderColumna = (prof: any) => {
-    const citasFiltradas = citas.filter(
-      c => c.profesional === prof.nombre && c.fecha === fecha
-    )
-
-    const isEva = prof.nombre === "Eva"
-
-    return (
-      <div style={{ flex: 1, margin: 10 }}>
-
-        {/* HEADER PRO */}
-        <div style={{
-          textAlign: "center",
-          padding: 14,
-          color: "white",
-          borderRadius: "12px 12px 0 0",
-          fontWeight: "bold",
-          background: isEva
-            ? "linear-gradient(135deg, #7b2cbf, #9d4edd)"
-            : "linear-gradient(135deg, #ff4d6d, #ff758f)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-        }}>
-          {prof.nombre}
-        </div>
-
-        {renderServicios(prof)}
-
-        <div style={{
-          height: 650,
-          position: "relative",
-          background: "#fafafa",
-          borderRadius: "0 0 16px 16px",
-          border: "1px solid #eee",
-          overflow: "hidden"
-        }}>
-
-          {horas.map(h => (
-            <div
-              key={h}
-              onClick={() => crearCita(h, prof)}
-              style={{
-                position: "absolute",
-                top: (h - 600) * 2,
-                left: 0,
-                right: 0,
-                height: 30,
-                borderTop: "1px dashed #eee",
-                cursor: "pointer"
-              }}
-            >
-              {h % 60 === 0 && (
-                <span style={{ fontSize: 10, color: "#aaa", position: "absolute", left: 4 }}>
-                  {toTime(h)}
-                </span>
-              )}
-            </div>
-          ))}
-
-          {citasFiltradas.map(c => (
-            <div
-              key={c.id}
-              style={{
-                position: "absolute",
-                top: (c.inicio - 600) * 2,
-                left: 6,
-                right: 6,
-                height: (c.fin - c.inicio) * 2,
-                background: `linear-gradient(135deg, ${c.color}, #fff)`,
-                borderRadius: 14,
-                padding: 8,
-                fontSize: 12,
-                boxShadow: "0 6px 18px rgba(0,0,0,0.1)",
-                animation: "pop 0.2s ease"
-              }}
-            >
-              <b>{c.servicio}</b>
-              <div>👤 {c.cliente}</div>
-              <div>⏰ {toTime(c.inicio)} - {toTime(c.fin)}</div>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  eliminar(c.id)
-                }}
-                style={{
-                  marginTop: 4,
-                  fontSize: 10,
-                  background: "#000",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "2px 6px"
-                }}
-              >
-                borrar
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
+  const selectService = (pro: "amparo" | "eva", service: string) => {
+    setSelected((prev) => ({
+      ...prev,
+      [pro]: service
+    }))
   }
 
   return (
-    <main style={{
-      padding: 25,
-      fontFamily: "Arial",
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #ffe6f0, #e6f7ff, #fff7e6)",
-      backgroundSize: "400% 400%",
-      animation: "gradientMove 10s ease infinite"
-    }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: 30,
+        fontFamily: "Arial",
+        background: "linear-gradient(135deg, #ffe6f0, #e6f7ff)"
+      }}
+    >
+      {/* LOGO */}
+      <h1 style={{ fontSize: 55, color: "#d81b60", marginBottom: 10 }}>
+        MUAH 💅
+      </h1>
 
-      <style>{`
-        @keyframes gradientMove {
-          0% {background-position: 0% 50%}
-          50% {background-position: 100% 50%}
-          100% {background-position: 0% 50%}
-        }
-        @keyframes pop {
-          0% {transform: scale(0.95); opacity: 0.6}
-          100% {transform: scale(1); opacity: 1}
-        }
-      `}</style>
+      <h2 style={{ marginBottom: 30 }}>Agenda Amparo</h2>
 
-      {/* LOGO ANIMADO */}
-      <div style={{ textAlign: "center", marginBottom: 25 }}>
-        <h1 style={{
-          fontSize: 60,
-          fontWeight: "bold",
-          letterSpacing: 3,
-          background: "linear-gradient(270deg, #ff4d6d, #7b2cbf, #4cc9f0, #f72585)",
-          backgroundSize: "800% 800%",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          animation: "logoColor 6s ease infinite",
-          textShadow: "0 4px 20px rgba(0,0,0,0.15)"
-        }}>
-          MUAH
-        </h1>
+      {/* CONTAINER */}
+      <div style={{ display: "flex", gap: 30, flexWrap: "wrap" }}>
+        
+        {/* AMPARO */}
+        <div
+          style={{
+            flex: 1,
+            padding: 20,
+            borderRadius: 20,
+            background: "#fff",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
+          }}
+        >
+          <h3 style={{ color: "#d81b60", fontSize: 24 }}>
+            Amparo 👩‍💼
+          </h3>
 
-        <style>{`
-          @keyframes logoColor {
-            0% {background-position: 0% 50%}
-            50% {background-position: 100% 50%}
-            100% {background-position: 0% 50%}
-          }
-        `}</style>
+          {services.map((s) => (
+            <button
+              key={s}
+              onClick={() => selectService("amparo", s)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 12,
+                marginTop: 10,
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                background:
+                  selected.amparo === s ? "#d81b60" : "#f3f3f3",
+                color: selected.amparo === s ? "#fff" : "#000",
+                transition: "0.3s"
+              }}
+            >
+              {s}
+            </button>
+          ))}
 
-        <div style={{ letterSpacing: 3 }}>
-          BY AMPARO SALADO
+          <p style={{ marginTop: 20 }}>
+            Seleccionado: {selected.amparo || "ninguno"}
+          </p>
+        </div>
+
+        {/* EVA */}
+        <div
+          style={{
+            flex: 1,
+            padding: 20,
+            borderRadius: 20,
+            background: "#fff",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
+          }}
+        >
+          <h3 style={{ color: "#1976d2", fontSize: 24 }}>
+            Eva 💅 (solo uñas)
+          </h3>
+
+          {services.map((s) => (
+            <button
+              key={s}
+              onClick={() => selectService("eva", s)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 12,
+                marginTop: 10,
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                background:
+                  selected.eva === s ? "#1976d2" : "#f3f3f3",
+                color: selected.eva === s ? "#fff" : "#000",
+                transition: "0.3s"
+              }}
+            >
+              {s}
+            </button>
+          ))}
+
+          <p style={{ marginTop: 20 }}>
+            Seleccionado: {selected.eva || "ninguno"}
+          </p>
         </div>
       </div>
-
-      <h2>👤 CLIENTE</h2>
-
-      <input
-        placeholder="Nombre"
-        value={cliente}
-        onChange={e => setCliente(e.target.value)}
-        style={{ padding: 10, marginRight: 10 }}
-      />
-
-      <input
-        placeholder="Teléfono"
-        value={telefono}
-        onChange={e => setTelefono(e.target.value)}
-        style={{ padding: 10 }}
-      />
-
-      <div style={{ marginTop: 20, marginBottom: 10 }}>
-        <h2>📅 AGENDA</h2>
-
-        <input
-          type="date"
-          value={fecha}
-          onChange={e => setFecha(e.target.value)}
-          style={{ padding: 10, borderRadius: 10 }}
-        />
-      </div>
-
-      <div style={{ display: "flex" }}>
-        {profesionales.map(p => renderColumna(p))}
-      </div>
-
     </main>
   )
 }
