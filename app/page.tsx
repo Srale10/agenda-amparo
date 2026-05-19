@@ -14,7 +14,7 @@ type Cita = {
 }
 
 export default function Home() {
-  // 🟢 ESTADO GLOBAL (citas, clientes, etc)
+  const [servicio, setServicio] = useState("")
   const [cliente, setCliente] = useState("")
   const [telefono, setTelefono] = useState("")
   const [citas, setCitas] = useState<Cita[]>([])
@@ -24,7 +24,7 @@ export default function Home() {
     new Date().toISOString().split("T")[0]
   )
 
-  // 🔥 FIX IMPORTANTE: estado separado por profesional
+  // 🟢 FIX IMPORTANTE: servicios separados por profesional
   const [servicioAmparo, setServicioAmparo] = useState("")
   const [servicioEva, setServicioEva] = useState("")
 
@@ -75,11 +75,12 @@ export default function Home() {
     }
   ]
 
+  // 🟢 servicio activo REAL según profesional (sin romper calendario)
   const servicioSel = categorias
     .flatMap(c => c.servicios)
-    .find(s => {
-      return s.nombre === servicioAmparo || s.nombre === servicioEva
-    })
+    .find(s =>
+      s.nombre === servicioAmparo || s.nombre === servicioEva || s.nombre === servicio
+    )
 
   const toTime = (m: number) => {
     const h = Math.floor(m / 60)
@@ -90,20 +91,14 @@ export default function Home() {
   const horas = Array.from({ length: 40 }, (_, i) => 600 + i * 15)
 
   const crearCita = (inicio: number, prof: any) => {
+    if (!servicioSel) return
     if (!cliente.trim()) return alert("Escribe el nombre del cliente")
 
-    // 🔥 FIX: detectar servicio correcto según profesional
-    const servicio =
+    const servicioActual =
       prof.nombre === "Amparo" ? servicioAmparo : servicioEva
 
-    const servicioObj = categorias
-      .flatMap(c => c.servicios)
-      .find(s => s.nombre === servicio)
-
-    if (!servicioObj) return
-
     const cat = categorias.find(c =>
-      c.servicios.some(s => s.nombre === servicio)
+      c.servicios.some(s => s.nombre === servicioActual)
     )
 
     if (prof.soloUñas && !cat?.esUñas) {
@@ -113,14 +108,14 @@ export default function Home() {
 
     const nueva: Cita = {
       id: Date.now(),
-      servicio,
+      servicio: servicioActual,
       profesional: prof.nombre,
       cliente,
       telefono,
       inicio,
-      fin: inicio + servicioObj.tiempo,
+      fin: inicio + (servicioSel?.tiempo || 0),
       fecha,
-      color: servicioObj.color
+      color: servicioSel?.color || "#ccc"
     }
 
     setCitas(prev => [...prev, nueva])
@@ -148,8 +143,7 @@ export default function Home() {
           backdropFilter: "blur(6px)",
           fontSize: 15,
           fontWeight: "bold",
-          color: "#222",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+          color: "#222"
         }}>
           💅 Servicios disponibles
         </div>
@@ -160,8 +154,7 @@ export default function Home() {
             <div style={{
               fontSize: 14,
               fontWeight: "bold",
-              color: "#d81b60",
-              marginBottom: 6
+              color: "#d81b60"
             }}>
               {cat.nombre}
             </div>
@@ -173,7 +166,7 @@ export default function Home() {
             }}>
               {cat.servicios.map(s => {
 
-                // 🔥 FIX PRINCIPAL AQUÍ
+                // 🔥 FIX CLAVE
                 const activo =
                   prof.nombre === "Amparo"
                     ? servicioAmparo === s.nombre
@@ -195,11 +188,7 @@ export default function Home() {
                       background: activo ? "#111" : "white",
                       color: activo ? "white" : "#111",
                       border: "1px solid #eee",
-                      boxShadow: hovered === s.nombre
-                        ? "0 10px 25px rgba(0,0,0,0.18)"
-                        : "0 6px 18px rgba(0,0,0,0.08)",
                       cursor: "pointer",
-                      userSelect: "none",
                       transform: hovered === s.nombre ? "scale(1.05)" : "scale(1)",
                       transition: "all 0.25s ease"
                     }}
@@ -207,8 +196,7 @@ export default function Home() {
                     <div style={{ fontSize: 13, fontWeight: "bold" }}>
                       {s.nombre}
                     </div>
-
-                    <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+                    <div style={{ fontSize: 11, opacity: 0.7 }}>
                       {s.tiempo} min
                     </div>
                   </div>
@@ -239,8 +227,7 @@ export default function Home() {
           fontWeight: "bold",
           background: isEva
             ? "linear-gradient(135deg, #7b2cbf, #9d4edd)"
-            : "linear-gradient(135deg, #ff4d6d, #ff758f)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+            : "linear-gradient(135deg, #ff4d6d, #ff758f)"
         }}>
           {prof.nombre}
         </div>
@@ -252,8 +239,7 @@ export default function Home() {
           position: "relative",
           background: "#fafafa",
           borderRadius: "0 0 16px 16px",
-          border: "1px solid #eee",
-          overflow: "hidden"
+          border: "1px solid #eee"
         }}>
 
           {horas.map(h => (
@@ -284,8 +270,7 @@ export default function Home() {
                 background: `linear-gradient(135deg, ${c.color}, #fff)`,
                 borderRadius: 14,
                 padding: 8,
-                fontSize: 12,
-                boxShadow: "0 6px 18px rgba(0,0,0,0.1)"
+                fontSize: 12
               }}
             >
               <b>{c.servicio}</b>
@@ -296,15 +281,6 @@ export default function Home() {
                 onClick={(e) => {
                   e.stopPropagation()
                   eliminar(c.id)
-                }}
-                style={{
-                  marginTop: 4,
-                  fontSize: 10,
-                  background: "#000",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "2px 6px"
                 }}
               >
                 borrar
@@ -320,14 +296,11 @@ export default function Home() {
     <main style={{
       padding: 25,
       fontFamily: "Arial",
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #ffe6f0, #e6f7ff, #fff7e6)"
+      minHeight: "100vh"
     }}>
-
       <div style={{ display: "flex" }}>
         {profesionales.map(p => renderColumna(p))}
       </div>
-
     </main>
   )
 }
